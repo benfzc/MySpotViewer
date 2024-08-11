@@ -6,6 +6,8 @@
 
 MySpotViewer 是一個網頁應用程式，專為喜愛收藏和探索台灣各地景點的用戶設計。這個工具允許用戶載入、查看和探索他們個人收藏的地點，並在台灣地圖上直觀地呈現這些地點的相對位置。
 
+立即使用 MySpotViewer：[https://benfzc.github.io/MySpotViewer/](https://benfzc.github.io/MySpotViewer/)
+
 ## 主要功能
 
 - 在台灣地圖上視覺化顯示個人收藏的景點
@@ -16,7 +18,7 @@ MySpotViewer 是一個網頁應用程式，專為喜愛收藏和探索台灣各�
 
 ## 如何使用
 
-1. 訪問應用程式網頁。
+1. 訪問 MySpotViewer 應用程式網頁：[https://benfzc.github.io/MySpotViewer/](https://benfzc.github.io/MySpotViewer/)
 2. 準備一個包含您想標記景點的 JSON 文件。文件格式應為：
    ```json
    [
@@ -38,6 +40,8 @@ MySpotViewer 是一個網頁應用程式，專為喜愛收藏和探索台灣各�
 
 MySpotViewer is a web application designed for users who love to collect and explore various locations across Taiwan. This tool allows users to load, view, and explore their personal collection of spots, visualizing their relative positions on a map of Taiwan.
 
+Use MySpotViewer now: [https://benfzc.github.io/MySpotViewer/](https://benfzc.github.io/MySpotViewer/)
+
 ## Key Features
 
 - Visualize personal collection of spots on a Taiwan map
@@ -48,7 +52,7 @@ MySpotViewer is a web application designed for users who love to collect and exp
 
 ## How to Use
 
-1. Access the application webpage.
+1. Access the MySpotViewer application webpage: [https://benfzc.github.io/MySpotViewer/](https://benfzc.github.io/MySpotViewer/)
 2. Prepare a JSON file containing the spots you want to mark. The file format should be:
    ```json
    [
@@ -61,4 +65,3 @@ MySpotViewer is a web application designed for users who love to collect and exp
 3. Click the "Choose JSON File to Upload My Spots" button.
 4. Select your prepared JSON file.
 5. After successful upload, the map will automatically update to display your spot locations.
-
