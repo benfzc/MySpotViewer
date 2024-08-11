@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的景點地圖</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        #map-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        #map { 
+            width: 100%; 
+            height: 600px; 
+            position: relative;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .county { fill: #e0e0e0; stroke: #ffffff; stroke-width: 0.5; }
+        .marker { fill: #e74c3c; }
+        #zoom-info { 
+            position: absolute; 
+            top: 10px; 
+            left: 10px; 
+            background: rgba(255,255,255,0.8); 
+            padding: 5px 10px; 
+            border-radius: 20px;
+            font-size: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+        #file-input-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        #file-input {
+            display: none;
+        }
+        .file-input-label {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+            transition: background-color 0.3s;
+        }
+        .file-input-label:hover {
+            background-color: #2980b9;
+        }
+        #debug-info { 
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            max-height: 200px; 
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        .instructions {
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 0 8px 8px 0;
+            font-size: 14px;
+        }
+        .collapsible {
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            padding: 10px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 15px;
+            transition: 0.4s;
+            border-radius: 4px;
+        }
+        .active, .collapsible:hover {
+            background-color: #2980b9;
+        }
+        .content {
+            padding: 0 18px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+            background-color: #f1f1f1;
+            border-radius: 0 0 4px 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>我的景點地圖</h1>
+    
+    <div id="map-container">
+        <div id="map">
+            <div id="zoom-info">縮放: 1x</div>
+        </div>
+    </div>
+
+    <div id="file-input-container">
+        <label for="file-input" class="file-input-label">選擇 JSON 文件上傳我的景點</label>
+        <input type="file" id="file-input" accept=".json">
+    </div>
+
+    <button class="collapsible">查看使用說明</button>
+    <div class="content">
+        <div class="instructions">
+            <h3>使用說明：</h3>
+            <ol>
+                <li>準備一個包含您想標記景點的 JSON 文件。</li>
+                <li>文件格式應為：[{"name": "景點名稱", "lat": 緯度, "lon": 經度, "description": "描述(可選)"}]</li>
+                <li>點擊上方的 "選擇 JSON 文件" 按鈕上傳您的文件。</li>
+                <li>上傳成功後，地圖將自動更新顯示您的景點位置。</li>
+            </ol>
+        </div>
+    </div>
+
+    <div id="debug-info"></div>
+
+    <script>
+        // JavaScript 代碼保持不變
+        const width = 800;
+        const height = 600;
+
+        const svg = d3.select("#map")
+            .append("svg")
+            .attr("viewBox", [0, 0, width, height])
+            .attr("width", "100%")
+            .attr("height", "100%");
+
+        const g = svg.append("g");
+
+        const projection = d3.geoMercator()
+            .center([121, 23.5])
+            .scale(8000)
+            .translate([width / 2, height / 2]);
+
+        const path = d3.geoPath().projection(projection);
+
+        // 默認位置
+        let locations = [
+            { name: "台北101", lat: 25.0339, lon: 121.5644 },
+            { name: "高雄85大樓", lat: 22.6134, lon: 120.3008 },
+            { name: "日月潭", lat: 23.8496, lon: 120.9131 }
+        ];
+
+        function log(message) {
+            const debugInfo = document.getElementById('debug-info');
+            const time = new Date().toLocaleTimeString();
+            debugInfo.innerHTML += `[${time}] ${message}\n`;
+            debugInfo.scrollTop = debugInfo.scrollHeight;
+        }
+
+        function updateMarkers() {
+            g.selectAll(".marker").remove();
+            g.selectAll("circle")
+                .data(locations)
+                .enter().append("circle")
+                .attr("cx", d => projection([d.lon, d.lat])[0])
+                .attr("cy", d => projection([d.lon, d.lat])[1])
+                .attr("r", 5)
+                .attr("class", "marker")
+                .append("title")
+                .text(d => `${d.name}${d.description ? ': ' + d.description : ''}`);
+            log(`更新了 ${locations.length} 個景點標記`);
+        }
+
+        d3.json("https://raw.githubusercontent.com/ronnywang/twgeojson/master/twcounty2010.json").then(function(geojson) {
+            log("已加載台灣縣市地圖數據");
+            g.selectAll("path")
+                .data(geojson.features)
+                .enter().append("path")
+                .attr("d", path)
+                .attr("class", "county")
+                .append("title")
+                .text(d => d.properties.county);
+
+            updateMarkers();
+
+            const zoom = d3.zoom()
+                .scaleExtent([0.5, 20])
+                .on("zoom", zoomed);
+
+            svg.call(zoom);
+
+            function zoomed(event) {
+                g.attr("transform", event.transform);
+                d3.select("#zoom-info").text(`縮放: ${event.transform.k.toFixed(2)}x`);
+                g.selectAll(".county").attr("stroke-width", 0.5 / event.transform.k);
+                g.selectAll(".marker").attr("r", 5 / event.transform.k);
+            }
+        }).catch(error => {
+            log(`加載地圖數據時出錯: ${error.message}`);
+        });
+
+        document.getElementById('file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                log(`開始讀取文件: ${file.name}`);
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const content = e.target.result;
+                        const data = JSON.parse(content);
+                        log("JSON 文件解析成功");
+                        
+                        if (Array.isArray(data)) {
+                            locations = data.filter(loc => 
+                                loc.name && !isNaN(loc.lat) && !isNaN(loc.lon)
+                            );
+                            log(`成功載入 ${locations.length} 個有效景點`);
+                            if (locations.length < data.length) {
+                                log(`警告：${data.length - locations.length} 個景點數據無效，已被忽略`);
+                            }
+                            updateMarkers();
+                        } else {
+                            throw new Error("JSON 數據不是數組格式");
+                        }
+                    } catch (error) {
+                        log(`解析文件時出錯: ${error.message}`);
+                    }
+                };
+                reader.onerror = function(e) {
+                    log(`讀取文件時出錯: ${e.target.error.message}`);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // 可折疊面板的 JavaScript
+        var coll = document.getElementsByClassName("collapsible");
+        var i;
+
+        for (i = 0; i < coll.length; i++) {
+            coll[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                var content = this.nextElementSibling;
+                if (content.style.maxHeight){
+                    content.style.maxHeight = null;
+                } else {
+                    content.style.maxHeight = content.scrollHeight + "px";
+                } 
+            });
+        }
+    </script>
+</body>
+</html>
