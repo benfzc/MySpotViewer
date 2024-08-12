@@ -113,15 +113,27 @@
             background-color: #f1f1f1;
             border-radius: 0 0 4px 4px;
         }
+        .info-popup {
+            position: absolute;
+            background: white;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+            max-width: 200px;
+        }
     </style>
 </head>
 <body>
     <h1>我的景點地圖</h1>
     
     <div id="map-container">
-        <div id="map">
-            <div id="zoom-info">縮放: 1x</div>
-        </div>
+		<div id="map">
+			<div id="zoom-info">縮放: 1x</div>
+			<div id="info-popup" class="info-popup"></div>
+		</div>
     </div>
 
     <div id="file-input-container">
@@ -187,9 +199,23 @@
                 .attr("cy", d => projection([d.lon, d.lat])[1])
                 .attr("r", 5)
                 .attr("class", "marker")
-                .append("title")
-                .text(d => `${d.name}${d.description ? ': ' + d.description : ''}`);
+                .on("mouseover", showInfo)
+                .on("mouseout", hideInfo)
+                .on("click", showInfo);
             log(`更新了 ${locations.length} 個景點標記`);
+        }
+
+        function showInfo(event, d) {
+            const [x, y] = projection([d.lon, d.lat]);
+            const popup = d3.select("#info-popup");
+            popup.style("left", (x + 10) + "px")
+                 .style("top", (y - 10) + "px")
+                 .html(`<strong>${d.name}</strong><br>${d.description || ""}`)
+                 .style("display", "block");
+        }
+
+        function hideInfo() {
+            d3.select("#info-popup").style("display", "none");
         }
 
         d3.json("https://raw.githubusercontent.com/ronnywang/twgeojson/master/twcounty2010.json").then(function(geojson) {
